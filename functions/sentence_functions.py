@@ -189,6 +189,9 @@ def create_sentences(file_name, search_string):
 # TESTING FUNCTIONS
 # extra function for validation
 def line_wise_search(file_name, search_text):
+    """
+    Creates result by searching line by line but it does not give the sentence for search_text
+    """
     result = []
     search_text = search_text.lower()
     text_file_path = os.path.join(os.path.dirname(__file__), '..', 'text_files', file_name)
@@ -210,6 +213,10 @@ def line_wise_search(file_name, search_text):
 
 # comparing occurrences and result from linewise search
 def compare_res(occurrences, org_res):
+    """
+    It compares the result data from two functions (create_sentences, line_wise_search).
+    IT only compares the line data(locatin of search_text)
+    """
     res = False
     if(len(occurrences) == len(org_res)): res = True
     elif(len(occurrences) > len(org_res)): print("multiline result")
