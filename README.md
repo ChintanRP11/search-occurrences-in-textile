@@ -1,6 +1,8 @@
 # My Flask Project: Search Text In File
 
-This is a simple Flask project that demonstrates how to search for occurrences of a specific text in a given text file and return the results as JSON data using a Flask API.
+This is a simple Flask project that demonstrates how to search for occurrences of a specific text in a given text file and return the results as JSON data using a Flask API. 
+
+[API Documentation.](https://documenter.getpostman.com/view/24754992/2s9XxsWwTm)
 
 ## Setup 
 To run locally:
