@@ -8,7 +8,7 @@ This is a simple Flask project that demonstrates how to search for occurrences o
 To run locally:
 - install git
 
-- Use this command to clone this repository in local: ```git clone https://github.com/ChintanRP11/coding_task.git```
+- Use this command to clone this repository in local: ```git clone https://github.com/ChintanRP11/search-occurrences-in-textile.git```
 - install python ```pip install python``` or ```pip install python3```
 
 ## Create virtual environment to run this app:
