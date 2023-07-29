@@ -1,0 +1,5 @@
+.DS_Store
+venv/
+__pycache__
+functions/__pycache__
+routes/__pycache__
