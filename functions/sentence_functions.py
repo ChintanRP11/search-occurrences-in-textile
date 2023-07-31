@@ -15,7 +15,7 @@ def find_eos_index(line, last_eos):
     Returns:
         int: The index of the first occurrence of end of the sentence after last_eos, or -1 if not found.
     """
-    patterns = [r'\.\"\s+[A-Za-z]', r'\.\s+[A-Za-z]', r'\.\s*\.', r'\.\n']
+    patterns = [r'\.\"\s+[A-Za-z]', r'\.\s+[A-Za-z]', r'\.\s*\.', r'\.\n', r'\.\s*\[']
     end_ind_list = []
     for pattern in patterns:
         match = re.search(pattern, line[last_eos:])
@@ -107,83 +107,127 @@ def create_sentences(file_name, search_string):
     """
     text_file_path = os.path.join(os.path.dirname(__file__), '..', 'text_files', file_name)
 
-    with open(text_file_path, "r") as file:
-        line_number = 1
-        sentence_data = {}
-        current_sentence = ""
-        lines = []
+    try:
+        with open(text_file_path, "r") as file:
+            line_number = 1
+            sentence_data = {}
+            current_sentence = ""
+            lines = []
 
-        line = file.readline()
-        final_occurrences = []
-        occurrences = []
-        # reading file line by line until EOF
-        while line:
-            if(line == "\n"):   # if current line is blank and previous line does not ended before then it ends here add sentence_data into sentences
-                lines.append([line_number, 0, 0, 0])
-                sentence_data["sentence"] = current_sentence
-                sentence_data["lines"] = lines
+            line = file.readline()
+            final_occurrences = []
+            occurrences = []
+            inside_bracket = False
+            # reading file line by line until EOF
+            while line:
+                cursor = 0
+                if(line == "\n"):   # if current line is blank and previous line does not ended before then it ends here add sentence_data into sentences
+                    lines.append([line_number, 0, 0, 0])
+                    sentence_data["sentence"] = current_sentence
+                    sentence_data["lines"] = lines
+                    
+                    # check for occurrences in recently created sentence
+                    occurrences = find_occurrence_in_current_sentence(sentence_data, search_string)
+                    if(len(occurrences) > 0): final_occurrences += occurrences
+                    
+                    # reseting sentence data
+                    sentence_data = {}
+                    lines = []
+                    current_sentence = ""
                 
-                # check for occurrences in recently created sentence
-                occurrences = find_occurrence_in_current_sentence(sentence_data, search_string)
-                if(len(occurrences) > 0): final_occurrences += occurrences
-                
-                # reseting sentence data
-                sentence_data = {}
-                lines = []
-                current_sentence = ""
-            
-            else:
-                eos_ind = find_eos_index(line, 0)   # find the end of sentence index
-                
-                # if line does not contain any end of sentence, add whole line into current_sentence and update lines array
-                if eos_ind <= 0:    
-                    current_sentence += line
-                    lines.append([line_number, 0, len(line), len(line)])
-                
-                else:   # end of sentence found in line update the current_sentence, lines and sentence_data
-                    sent_st = 0
-                    # loop until all end of sentence found
-                    while(eos_ind != -1):   # end of sentence found, complete the sentence and checking for search_string
-                        
-                        # if sentence start from middle of the line
-                        if sent_st != 0: 
-                            sent_st -= 1
-                        
-                        current_sentence += line[sent_st:eos_ind]
-                        lines.append([line_number, sent_st, eos_ind, (eos_ind - sent_st)])
-                        
-                        # complete the sentence_data and check for occurrences
-                        sentence_data["sentence"] = current_sentence 
+                else:
+                    ###
+                    # if new paragraph starts, then previous sentence is ending here
+                    if (line[:4] == "    "):
+                        sentence_data["sentence"] = current_sentence
                         sentence_data["lines"] = lines
+                        
+                        # check for occurrences in recently created sentence
                         occurrences = find_occurrence_in_current_sentence(sentence_data, search_string)
                         if(len(occurrences) > 0): final_occurrences += occurrences
-
-                        # reseting the sentence_data, lines, current_sentence for next sentence
+                        
+                        # reseting sentence data
                         sentence_data = {}
                         lines = []
                         current_sentence = ""
+                    ###
+                    
+                    # check for any open bracket before the eos
+                    eos_ind = find_eos_index(line,cursor)
+                    bracket_start = line.find('[')
+                    if(not inside_bracket and bracket_start != -1 and eos_ind-1 > bracket_start):
+                        inside_bracket = True
 
-                        sent_st = eos_ind   # maintaining start point for new sentences
-                        eos_ind = find_eos_index(line, eos_ind) # find another end of sentence in current line
+                    
+                    # if brackets end in same or another line
+                    bracket_end = line.find(']')
+                    if(inside_bracket):
+                        if (bracket_end != -1):
+                            inside_bracket = False
+                            cursor = bracket_end
+                        else:
+                            current_sentence += line
+                            lines.append([line_number, 0, len(line), len(line)])
+                            
+                    # if no open brackets
+                    if (not inside_bracket):    # if not inside the bracket then check after the bracket-end
+                        eos_ind = find_eos_index(line, cursor)   # find the end of sentence index
                         
-                    # if no further end of sentence then add whole remaing line into current_sentence and update the lines array
-                    if(line[sent_st:] != "\n"):
-                        if(sent_st != len(line)): # if not end of the line
-                            current_sentence = line[sent_st-1:]
-                            lines.append([line_number, sent_st-1, len(line), len(line)-sent_st])
+                        # if line does not contain any end of sentence, add whole line into current_sentence and update lines array
+                        if eos_ind <= 0:    
+                            current_sentence += line
+                            lines.append([line_number, 0, len(line), len(line)])
+                        
+                        else:   # end of sentence found in line update the current_sentence, lines and sentence_data
+                            sent_st = 0
+                            # loop until all end of sentence found
+                            while(eos_ind != -1):   # end of sentence found, complete the sentence and checking for search_string
+                                
+                                # if sentence start from middle of the line
+                                if sent_st != 0: 
+                                    sent_st -= 1
+                                
+                                current_sentence += line[sent_st:eos_ind]
+                                lines.append([line_number, sent_st, eos_ind, (eos_ind - sent_st)])
+                                
+                                # complete the sentence_data and check for occurrences
+                                sentence_data["sentence"] = current_sentence 
+                                sentence_data["lines"] = lines
+                                occurrences = find_occurrence_in_current_sentence(sentence_data, search_string)
+                                if(len(occurrences) > 0): final_occurrences += occurrences
 
-            # moving to next line
-            line_number += 1    
-            line = file.readline() 
-        
-        # case for last line in the file, complete sentence if any left 
-        if(current_sentence != ""):
-            sentence_data["sentence"] = current_sentence
-            sentence_data["lines"] = lines
-            occurrences = find_occurrence_in_current_sentence(sentence_data, search_string)
-            if(len(occurrences) > 0): final_occurrences += occurrences
+                                # reseting the sentence_data, lines, current_sentence for next sentence
+                                sentence_data = {}
+                                lines = []
+                                current_sentence = ""
+
+                                sent_st = eos_ind   # maintaining start point for new sentences
+                                cursor = eos_ind
+                                eos_ind = find_eos_index(line, cursor) # find another end of sentence in current line
+                                
+                            # if no further end of sentence then add whole remaing line into current_sentence and update the lines array
+                            if(line[sent_st:] != "\n"):
+                                if(sent_st != len(line)): # if not end of the line
+                                    current_sentence = line[sent_st-1:]
+                                    lines.append([line_number, sent_st-1, len(line), len(line)-sent_st])
+                        
+
+                # moving to next line
+                line_number += 1    
+                line = file.readline() 
             
+            # case for last line in the file, complete sentence if any left 
+            if(current_sentence != ""):
+                sentence_data["sentence"] = current_sentence
+                sentence_data["lines"] = lines
+                occurrences = find_occurrence_in_current_sentence(sentence_data, search_string)
+                if(len(occurrences) > 0): final_occurrences += occurrences
+                
+            return final_occurrences
+    except Exception as e:
+        print(str(e))
         return final_occurrences
+
 
 
 # TESTING FUNCTIONS
