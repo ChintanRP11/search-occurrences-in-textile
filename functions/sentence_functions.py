@@ -87,7 +87,7 @@ def find_occurrence_in_current_sentence(sentence_data, search_string):
 
 
 # create structure for sentences array
-# sentences = [...sentence]
+# sentences = [...sentence_data]
 # sentence_data = {
 #     sentence: "whole statement including \n "
 #     lines: [ ...[line number, start_index, end_index, length of line] ]
@@ -120,7 +120,7 @@ def create_sentences(file_name, search_string):
             inside_bracket = False
             # reading file line by line until EOF
             while line:
-                cursor = 0
+                cursor = 0  # cursor is for current position in line
                 if(line == "\n"):   # if current line is blank and previous line does not ended before then it ends here add sentence_data into sentences
                     lines.append([line_number, 0, 0, 0])
                     sentence_data["sentence"] = current_sentence
@@ -130,14 +130,13 @@ def create_sentences(file_name, search_string):
                     occurrences = find_occurrence_in_current_sentence(sentence_data, search_string)
                     if(len(occurrences) > 0): final_occurrences += occurrences
                     
-                    # reseting sentence data
+                    # resetting sentence data
                     sentence_data = {}
                     lines = []
                     current_sentence = ""
                 
                 else:
-                    ###
-                    # if new paragraph starts, then previous sentence is ending here
+                    # if new paragraph starts, then previous sentence is ending here and look for current line eos
                     if (line[:4] == "    "):
                         sentence_data["sentence"] = current_sentence
                         sentence_data["lines"] = lines
@@ -146,20 +145,19 @@ def create_sentences(file_name, search_string):
                         occurrences = find_occurrence_in_current_sentence(sentence_data, search_string)
                         if(len(occurrences) > 0): final_occurrences += occurrences
                         
-                        # reseting sentence data
+                        # resetting sentence data
                         sentence_data = {}
                         lines = []
                         current_sentence = ""
-                    ###
                     
-                    # check for any open bracket before the eos
+                    # check for any open bracket before the end of sentence
                     eos_ind = find_eos_index(line,cursor)
                     bracket_start = line.find('[')
                     if(not inside_bracket and bracket_start != -1 and eos_ind-1 > bracket_start):
                         inside_bracket = True
 
                     
-                    # if brackets end in same or another line
+                    # if bracket closes in same or another line
                     bracket_end = line.find(']')
                     if(inside_bracket):
                         if (bracket_end != -1):
@@ -196,7 +194,7 @@ def create_sentences(file_name, search_string):
                                 occurrences = find_occurrence_in_current_sentence(sentence_data, search_string)
                                 if(len(occurrences) > 0): final_occurrences += occurrences
 
-                                # reseting the sentence_data, lines, current_sentence for next sentence
+                                # resetting the sentence_data, lines, current_sentence for next sentence
                                 sentence_data = {}
                                 lines = []
                                 current_sentence = ""
@@ -216,7 +214,7 @@ def create_sentences(file_name, search_string):
                 line_number += 1    
                 line = file.readline() 
             
-            # case for last line in the file, complete sentence if any left 
+            # case for remaining part after last line in the file, complete sentence if any left 
             if(current_sentence != ""):
                 sentence_data["sentence"] = current_sentence
                 sentence_data["lines"] = lines
@@ -225,8 +223,7 @@ def create_sentences(file_name, search_string):
                 
             return final_occurrences
     except Exception as e:
-        print(str(e))
-        return final_occurrences
+        return ValueError
 
 
 
