@@ -1,6 +1,8 @@
 # fucntion which called during the api call
 import os
-from functions.sentence_functions import compare_res, create_sentences, line_wise_search
+from functions.sentence_functions import create_sentences
+from functions.sentence_functions import compare_res, line_wise_search
+
 
 # Function which is called during the API call. 
 # It specify the textfile name. Handles the case for missing text_file.
@@ -22,7 +24,7 @@ def make_sentences_data(search_text):
         
         occurrences = create_sentences(text_file, search_string)
         
-        # For testing and validation purposes, set testing to True
+        # Verification of results (Produces 99% correct results)
         testing = False
         if(testing == True):
             org_res = line_wise_search(text_file, search_string)
